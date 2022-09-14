@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  dev:
+    image: node:16.14
+    user: "node"
+    depends_on:
+      - localstack
+    working_dir: /app
+    volumes:
+      - ..:/app:cached
+      - ~/.npmrc:/home/node/.npmrc:delegated
+    command: sleep infinity
+
+
