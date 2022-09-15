@@ -1,0 +1,18 @@
+{
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#03f503",
+    "activityBar.foreground": "#ffffff",
+    "titleBar.activeBackground": "#03f503",
+    "titleBar.activeForeground": "#ffffff"
+  },
+  "editor.codeActionsOnSave": { "source.fixAll.eslint": true },
+  "jest.jestCommandLine": "npm run test --",
+  "jestrunner.codeLensSelector": "**/*.{micro,integration,test,spec}.{js,jsx,ts,tsx}",
+  "jestrunner.runOptions": ["--detectOpenHandles", "--forceExit"],
+  "files.exclude": {
+    "**/node_modules": true
+  },
+  "plantuml.exportFormat": "svg",
+  "plantuml.render": "PlantUMLServer",
+  "plantuml.server": "http://www.plantuml.com/plantuml"
+}

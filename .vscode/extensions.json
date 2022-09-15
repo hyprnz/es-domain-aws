@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "eamodio.gitlens",
+    "esbenp.prettier-vscode",
+    "firsttris.vscode-jest-runner",
+    "kavod-io.vscode-jest-test-adapter",
+  ]
+}
