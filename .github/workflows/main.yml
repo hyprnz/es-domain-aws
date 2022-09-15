@@ -14,7 +14,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.event.push
+    if: ${{ github.event_name == 'push' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -46,7 +46,8 @@ jobs:
   publish-gpr:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event.release.created == true
+    #  && github.event.action == 'created'
+    if: ${{ github.event_name == 'release' }}
     env:
       NODE_AUTH_TOKEN: ${{ secrets.HYPR_NPM_AUTH_TOKEN }}
     # permissions:
