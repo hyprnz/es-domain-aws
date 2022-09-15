@@ -1,7 +1,7 @@
 # This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
 # For more information see: https://help.github.com/actions/language-and-framework-guides/publishing-nodejs-packages
 
-name: build nodejs package
+name: Release New package
 
 on:
   push:
@@ -55,7 +55,8 @@ jobs:
 
       - name: Set Version
         run: |
-          BUILD_VERSION=1.0.$GITHUB_RUN_NUMBER
+          # BUILD_VERSION=1.0.$GITHUB_RUN_NUMBER
+          BUILD_VERSION=1.0.0-beta.$GITHUB_RUN_NUMBER
           BUILD_DATE=$(date +%Y-%m-%dT%H:%MZ)
           npm version ${BUILD_VERSION} --no-git-tag-version
           echo -e "BUILD_VERSION=$BUILD_VERSION\nBUILD_DATE=$BUILD_DATE\nSHA:$GITHUB_SHA\nGITHUB_REF_NAME=$GITHUB_REF_NAME" >> ./version.txt
@@ -75,11 +76,17 @@ jobs:
           npm run docker:dev -- exec -T dev npm run test:integration
           npm run docker:dev:down
 
-      - name: Publish
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_new_release == true }}
+      - name: Publish Dry Run
+        if: ${{ success() && inputs.create_new_release != true }}
         run: |
-          echo "Publish triggered..."
           npm publish --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.HYPR_NPM_AUTH_TOKEN }}
+
+      - name: Publish
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.create_new_release == true }}
+        run: |
+          npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.HYPR_NPM_AUTH_TOKEN }}
 
