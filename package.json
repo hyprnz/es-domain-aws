@@ -1,12 +1,12 @@
 {
-  "name": "@hyprnz/es-domain-azure",
+  "name": "@hyprnz/es-domain-aws",
   "version": "0.0.0",
-  "description": "es-domain implementations for azure services",
+  "description": "es-domain implementations for aws services",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",
   "repository": {
     "type": "git",
-    "url": "git://github.com/hyprnz/es-domain-azure"
+    "url": "git://github.com/hyprnz/es-domain-aws"
   },
   "scripts": {
     "prepare": "husky install",

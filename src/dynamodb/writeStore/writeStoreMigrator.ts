@@ -1,4 +1,4 @@
-import { AWSError, DynamoDB } from 'aws-sdk'
+import { DynamoDB } from 'aws-sdk'
 import { commonDynamoMigrator } from '../migrate/commonDynamoMigrator'
 
 export const makeWriteStoreMigrator = (client: DynamoDB, tableName: string = 'eventstore') => {
