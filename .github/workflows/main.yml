@@ -8,8 +8,10 @@ on:
     branches:
       - main
 
-  release:
-    types: [created]
+  # release:
+  #   types: [created]
+
+  workflow_dispatch:
 
 jobs:
   build:
@@ -32,6 +34,18 @@ jobs:
         working-directory: .
         run: npm ci
 
+      - name: Set Version
+        run: |
+          BUILD_VERSION=1.0.$GITHUB_RUN_NUMBER
+          BUILD_DATE=$(date +%Y-%m-%dT%H:%MZ)
+          npm version ${BUILD_VERSION} --no-git-tag-version
+          echo -e "BUILD_VERSION=$BUILD_VERSION\nBUILD_DATE=$BUILD_DATE\nSHA:$GITHUB_SHA\nGITHUB_REF_NAME=$GITHUB_REF_NAME" >> ./version.txt
+
+          echo "Verion File"
+          cat ./version.txt
+
+      - name: Build
+        run: npm run build
 
       - name: Micro Test
         run: npm run test:micro
@@ -46,16 +60,18 @@ jobs:
   publish-gpr:
     needs: build
     runs-on: ubuntu-latest
-    #  && github.event.action == 'created'
-    if: ${{ github.event_name == 'release' }}
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.HYPR_NPM_AUTH_TOKEN }}
-    # permissions:
-    #   contents: read
-    #   packages: write
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+
     steps:
       - name: Publish
         run: |
           echo "Publish triggered..."
+          npm publish --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.HYPR_NPM_AUTH_TOKEN }}
+
+    # permissions:
+    #   contents: read
+    #   packages: write
 
 
