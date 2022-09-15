@@ -24,10 +24,13 @@ jobs:
           node-version: 16
           cache: 'npm'
           registry-url: https://npm.pkg.github.com/
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.HYPR_NPM_AUTH_TOKEN }}
 
       - name: Install Dependencies
         working-directory: .
         run: npm ci
+
 
       - name: Micro Test
         run: npm run test:micro
