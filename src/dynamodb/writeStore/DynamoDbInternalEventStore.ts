@@ -1,6 +1,7 @@
 import { WriteModelRepositoryError } from '@hyprnz/es-domain'
 import { ChangeEvent, EntityEvent, InternalEventStore, OptimisticConcurrencyError, Uuid } from '@hyprnz/es-domain'
 import { AttributeMap, DocumentClient, TransactWriteItem } from 'aws-sdk/clients/dynamodb'
+import { isAWSError } from '../migrate/commonDynamoMigrator';
 
 
 interface DynamoID {
@@ -42,17 +43,17 @@ export class DynamoDbInternalEventStore implements InternalEventStore {
 
   getEvents(id: Uuid.UUID): Promise<EntityEvent[]> {
     return this.findByPK(id, 0)
-      .then(result => result.map(this.toEntityEvent))
+      .then(result => result.map(this.fromPersistable))
   }
   getEventsAfterVersion(id: Uuid.UUID, version: number): Promise<EntityEvent[]> {
     // TODO : Do this a bit smarter using dynamo  clause
     return this.findByPK(id, version)
-      .then(result => result.map(this.toEntityEvent))
+      .then(result => result.map(this.fromPersistable))
       .then(result => result.filter(x => x.version >= version))
   }
 
   async appendEvents(aggregateId: Uuid.UUID, changeVersion: number, changes: EntityEvent[]): Promise<void> {
-    const clock = new Date().toISOString()
+    const clock = this.config.clock().toISOString()
     const models = changes.map(x => this.toPersistable(clock, x))
     await this.save(aggregateId, changeVersion, models)
   }
@@ -101,12 +102,12 @@ export class DynamoDbInternalEventStore implements InternalEventStore {
 
       // this.logger.debug("After Saved object", saveResult);
 
-    } catch (err) {
-      const code = (err as any).code
-      if (code === 'TransactionCanceledException') {
-        throw new OptimisticConcurrencyError(aggregateId, changeVersion)
+    } catch (e) {
+      if(isAWSError(e)){
+        if (e.code === 'TransactionCanceledException') throw new OptimisticConcurrencyError(aggregateId, changeVersion)
+        throw new WriteModelRepositoryError('AggregateRoot', `Dynamo Db Error: ${e.code}`)
       }
-      throw new WriteModelRepositoryError('AggregateRoot', `Dynamo Db Error: ${code}`)
+      throw e
     }
   }
 
@@ -123,7 +124,7 @@ export class DynamoDbInternalEventStore implements InternalEventStore {
   }
 
   // Maybe these should be injected ?
-  private toEntityEvent(x: EventStoreModel): EntityEvent {
+  private fromPersistable(x: EventStoreModel): EntityEvent {
     const result = {
       version: x.SK,
       event: JSON.parse(x.EVENT) as ChangeEvent
