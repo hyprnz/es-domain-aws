@@ -12,12 +12,24 @@ on:
   #   types: [created]
 
   workflow_dispatch:
+    inputs:
+      create_new_release:
+          required: true
+          type: boolean
+          description: "Set to TRUE to Confirm the creation of a new release"
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' }}
     steps:
+      - name: Diagnostics
+        run: |
+           echo "inputs.create_new_release=${{ github.event_name }}"
+          #  echo "inputs.create_new_release=${{ inputs.create_new_release }}"
+
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -60,8 +72,7 @@ jobs:
   publish-gpr:
     needs: build
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' }}
-
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_new_release == true }}
     steps:
       - name: Publish
         run: |
