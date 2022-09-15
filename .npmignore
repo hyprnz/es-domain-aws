@@ -1,26 +1,31 @@
-ci/
-src/
-docs/
-.husky/
-.vscode/
-deviceBoundedContext/
+ci
+src
+docs
+.husky
+.vscode
 junit.xml
 tsconfig.tsbuildinfo
 
-src/**/*.test.ts
-src/testAggregate/
-src/**/*.integration.ts
 
+
+dev
 .nvmrc
 .eslintrc.yaml
 .prettierrc
 .prettierignore
 
-dist/**/*.test.d.ts
-dist/**/*.test.d.ts.map
-dist/**/*.test.js
+
 *.integration.js
 *.integration.d.ts
+*.integration.d.ts.map
+*.micro.js
+*.micro.d.ts
+*.micro.d.ts.map
+
+dist/fixtures
+dist/testAggregate
+
+
 *.tgz
 *.json
 jest.config*
