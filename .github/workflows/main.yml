@@ -46,6 +46,7 @@ jobs:
           node-version: 16
           cache: 'npm'
           registry-url: https://npm.pkg.github.com/
+          scope: '@hyprnz'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.HYPR_NPM_AUTH_TOKEN }}
 
