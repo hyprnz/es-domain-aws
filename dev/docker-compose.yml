@@ -10,6 +10,9 @@ services:
       - ..:/app:cached
       - ~/.npmrc:/home/node/.npmrc:delegated
     command: sleep infinity
+    environment:
+      - NODE_ENV=development
+      - IS_INSIDE_CONTAINER=true
 
   localstack:
     image: localstack/localstack
@@ -17,9 +20,10 @@ services:
       - "4566-4599:4566-4599"
       - "8021:8021"
     environment:
-      - SERVICES=dynamodb,
+      - SERVICES=dynamodb
+      - DEFAULT_REGION=ap-southeast-2
       - DATA_DIR=/tmp/localstack/data
-      - PORT_WEB_UI=8021
+      - DEBUG=1
 
     # volumes:
     #   - ./init-scripts:/docker-entrypoint-initaws.d

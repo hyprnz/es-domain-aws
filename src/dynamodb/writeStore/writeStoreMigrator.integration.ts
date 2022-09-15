@@ -1,23 +1,14 @@
 import { DynamoDB } from "aws-sdk"
 import { assertThat, match } from "mismatched"
+import { makeAWSDynamoConfig } from "../../fixtures/testEnvironment"
 import { makeWriteStoreMigrator } from "./writeStoreMigrator"
 
 describe('writeStoreMigrator', () => {
     let client: DynamoDB
 
     beforeAll(async () => {
-
-        const clientOptions: DynamoDB.Types.ClientConfiguration = {
-            // endpoint: "http://localstack:4566",
-            endpoint: "http://localhost:4566",
-            region: "sa-east-1",
-            credentials: {
-                accessKeyId: "process.env.AWS_ACCESS_KEY_ID",
-                secretAccessKey: "process.env.AWS_SECRET_KEY",
-            }
-        }
-
-        client = new DynamoDB(clientOptions)
+      const clientOptions  = makeAWSDynamoConfig()
+      client = new DynamoDB(clientOptions)
     })
     it('up', async () => {
         const tableName = `some-test-table-${Date.now()}`
