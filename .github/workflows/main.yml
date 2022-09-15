@@ -1,0 +1,60 @@
+# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
+# For more information see: https://help.github.com/actions/language-and-framework-guides/publishing-nodejs-packages
+
+name: Node.js Package
+
+on:
+  push:
+    branches:
+      - main
+
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.HYPR_NPM_AUTH_TOKEN }}
+    permissions:
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+          registry-url: https://npm.pkg.github.com/
+
+      - name: Install Dependencies
+        working-directory: .
+        run: npm ci
+
+      - name: Micro Test
+        run: npm run test:micro
+
+      - name: Integration Test
+        run: |
+          npm run docker:dev:up
+          npm run docker:dev -- exec -T dev npm run test:integration
+          npm run docker:dev:down
+
+
+  publish-gpr:
+    needs: build
+    runs-on: ubuntu-latest
+    if: ${{ github.event.release.created }}
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.HYPR_NPM_AUTH_TOKEN }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Publish
+        run: |
+          echo "Publish triggered..."
+          # npm publish
+

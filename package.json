@@ -13,14 +13,12 @@
     "build": "tsc -p .",
     "clean": "rm -rf dist/** && rm -rf ./tsconfig.tsbuildinfo",
     "clean:build": "npm run clean && npm run build",
-    "test:micro": "jest .micro.ts --passWithNoTests",
-    "test:integration": "jest .integration.ts --passWithNoTests --detectOpenHandles --forceExit",
-    "test:integration:ci": "jest .integration.ts --passWithNoTests --detectOpenHandles --forceExit",
+    "test:micro": "jest .micro.ts",
+    "test:integration": "jest .integration.ts  --detectOpenHandles --forceExit",
     "docker:dev": "docker-compose -f ./dev/docker-compose.yml",
     "docker:dev:up": "npm run docker:dev -- up -d",
     "docker:dev:down": "npm run docker:dev -- down -v",
-    "docker:dev:connect": "npm run docker:dev -- exec dev bash",
-    "docker:dev:awslogs": "npm run docker:dev -- logs aws -f"
+    "docker:dev:connect": "npm run docker:dev -- exec dev bash"
   },
   "author": "HYPR Innovation",
   "license": "ISC",
