@@ -1,9 +1,10 @@
 import { DynamoDB } from "aws-sdk"
 import { assertThat, match } from "mismatched"
 import { makeAWSDynamoConfig } from "../../fixtures/testEnvironment"
-import { makeWriteStoreMigrator } from "./writeStoreMigrator"
+import { makeReadStoreMigrator } from "./readStoreMigrator"
 
-describe('writeStoreMigrator', () => {
+
+describe('readStoreMigrator', () => {
     let client: DynamoDB
 
     beforeAll(async () => {
@@ -12,7 +13,7 @@ describe('writeStoreMigrator', () => {
     })
     it('up', async () => {
         const tableName = `some-test-table-${Date.now()}`
-        const migrator = makeWriteStoreMigrator(client, tableName)
+        const migrator = makeReadStoreMigrator(client, tableName)
 
         await migrator.up()
         const tableNames = (await client.listTables().promise()).TableNames ?? []
@@ -24,7 +25,7 @@ describe('writeStoreMigrator', () => {
 
     it('tableStructure', async () => {
         const tableName = `some-test-table-${Date.now()}`
-        const migrator = makeWriteStoreMigrator(client, tableName)
+        const migrator = makeReadStoreMigrator(client, tableName)
 
         await migrator.up()
         const tableState = await client.describeTable({TableName:tableName}).promise()
@@ -35,7 +36,7 @@ describe('writeStoreMigrator', () => {
             },
             {
               AttributeName: "SK",
-              AttributeType: "N",
+              AttributeType: "S",
             },
           ])
 
@@ -53,7 +54,7 @@ describe('writeStoreMigrator', () => {
 
     it('down', async () => {
         const tableName = `some-test-table-${Date.now()}`
-        const migrator = makeWriteStoreMigrator(client, tableName)
+        const migrator = makeReadStoreMigrator(client, tableName)
 
         await migrator.up()
         const tablesBeforeDown = (await client.listTables().promise()).TableNames ?? []
