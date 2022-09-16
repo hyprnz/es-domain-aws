@@ -1,7 +1,7 @@
-import { Projection, ReadModelRepository, Uuid } from "@hyprnz/es-domain";
+import { Logger, Projection, ReadModelRepository, Uuid } from "@hyprnz/es-domain";
 import { AWSError } from "aws-sdk";
 import { DocumentClient } from "aws-sdk/clients/dynamodb";
-import { DynamoDbInternalEventStoreConfig, Logger } from "../..";
+import { DynamoDbInternalEventStoreConfig } from "../..";
 import { isAWSError } from "../migrate/commonDynamoMigrator";
 
 

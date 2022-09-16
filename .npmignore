@@ -1,12 +1,10 @@
+.github
+.husky
+.idea
+.vscode
 ci
 src
 docs
-.husky
-.vscode
-junit.xml
-tsconfig.tsbuildinfo
-
-
 
 dev
 .nvmrc
@@ -22,11 +20,15 @@ dev
 *.micro.d.ts
 *.micro.d.ts.map
 
-dist/fixtures
-dist/testAggregate
-
-
 *.tgz
 *.json
 jest.config*
 .git*
+*.ymal
+
+junit.xml
+tsconfig.tsbuildinfo
+tsconfig.json
+tsconfig-base.json
+dist/fixtures
+dist/testAggregate

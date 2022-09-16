@@ -29,11 +29,8 @@ describe('DynamoDbInternalEventStore', () => {
       uuid: () => Uuid.createV4()
     }
 
-    const docClientOptions: DocumentClient.DocumentClientOptions & DynamoDB.Types.ClientConfiguration = {
-      ...clientOptions
-    }
-
-    const client = new DynamoDB.DocumentClient(docClientOptions)
+  
+    const client = new DynamoDB.DocumentClient({service: db})
     dynamoRepo = new DynamoDbInternalEventStore(config, client, console)
     eventStore = new AggregateRepository(dynamoRepo)
   })
