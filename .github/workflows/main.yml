@@ -30,8 +30,13 @@ jobs:
            echo "event_name=${{ github.event_name }}"
            echo "inputs.create_new_release=${{ inputs.create_new_release }}"
 
-           echo "github.event=${{ github.event }}"
-           echo "inputs=${{ inputs }}"
+           echo -e "===================\n"
+           echo -e "github.event\n"
+           echo -e "${{toJSON(github.event)}}\n"
+           
+           echo -e "===================\n"
+           echo -e "inputs\n"
+           echo -e "${{toJSON(inputs)}}"
 
   build:
     runs-on: ubuntu-latest
