@@ -20,7 +20,7 @@ describe("DynamoDbReadRepository", () => {
     const clientOptions = makeAWSDynamoConfig()
     const db = new DynamoDB(clientOptions)
 
-    migrate = makeReadStoreMigrator(db, tableName)
+    migrate = makeReadStoreMigrator(db, tableName, console)
     await migrate.down()
     await migrate.up()
 

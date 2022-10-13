@@ -1,27 +1,46 @@
 import { Logger } from '@hyprnz/es-domain'
 import { AWSError, DynamoDB } from 'aws-sdk'
+import { TableStatus } from 'aws-sdk/clients/dynamodb'
 
 export interface Migrator {
   up(): Promise<void>,
   down(): Promise<void>
 }
 
-export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB.Types.CreateTableInput, logger: Logger): Migrator => {
+export type InternalMigrator = Migrator & {waitForDynamoTableStatus: (
+  tableName: string,
+  timeoutMs: number,
+  statusPredicate: (status: string | undefined) => boolean,
+  intervalMs: number
+) => Promise<TableStatus | undefined>}
+
+export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB.Types.CreateTableInput, logger: Logger) : InternalMigrator  => {
 
   async function up(): Promise<void> {
     // logger.debug("### Migrating... ###");
     try {
       const {TableName} = tableDefinition
-      const exists = await tableExits(TableName)
-      if (!exists) {
+      const status = await waitForDynamoTableStatus(
+        TableName,
+        2000,
+        // Wait for either active or removed
+        (s) => (s === undefined || s === "ACTIVE"),
+        200
+      )
+
+      if (!status) {
         logger.debug("Table creating", TableName)
         await client.createTable(tableDefinition).promise()
         logger.debug("Table created", TableName)
       }
       // logger.debug("### Migration complete! ###");
     } catch (e) {
+      if(isAWSError(e)){
+        // Table already created
+        if(e.code === 'ResourceInUseException') return
+      }
       // logger.error(new NestedError("There was an error creating the DB:", e));
-      logger.error('Failed to create DynamoDb Table', tableDefinition.TableName, e)
+      logger.error('Failed to create DynamoDb Table ${tableDefinition.TableName}', e)
       throw e
     }
   }
@@ -32,9 +51,15 @@ export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB
     // logger.debug("### Deleting DB... ###");
     try {
       const {TableName} = tableDefinition
-      const exists = await tableExits(TableName)
-      if(exists) {
-        logger.debug("Table deleting", TableName)
+      const status = await waitForDynamoTableStatus(
+        TableName,
+        2000,
+        // Wait for either active or removed
+        (s) => (s === undefined || s === "ACTIVE"),
+        200
+      )
+      if(status) {
+        logger.debug("Table deleteing", TableName)
         await client.deleteTable({ TableName: TableName }).promise()
         logger.debug("Table deleted", TableName)
       }
@@ -49,12 +74,52 @@ export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB
     }
   }
 
-  async function tableExits(name:string): Promise<boolean> {
-    const tableList = await client.listTables().promise()
-    return (tableList.TableNames ?? []).includes(name)
+
+  async function waitForDynamoTableStatus(
+    tableName: string,
+    timeoutMs: number,
+    statusPredicate: (status: string | undefined) => boolean,
+    intervalMs: number
+  ): Promise<TableStatus | undefined> {
+    const pollTable = async (): Promise<TableStatus | undefined> => {
+      try {
+        const tableState = await client.describeTable({ TableName: tableName }).promise()
+        return tableState.Table?.TableStatus
+      } catch (e) {
+        if( isAWSError(e)){
+        // const awsError = e as aws.AWSError
+        if (e.code === "ResourceNotFoundException") return undefined
+        }
+        throw e
+      }
+    }
+
+    return new Promise<TableStatus | undefined>(async (resolve, reject) => {
+      let timeout = timeoutMs
+      const interval = setInterval(async () => {
+        try {
+          const status = await pollTable()
+          timeout -= intervalMs
+          // console.log(`Status: ${status}, timeoutMs: ${timeoutMs}, Remaining: ${timeout}`)
+
+          if (statusPredicate(status)) {
+            clearInterval(interval)
+            return resolve(status)
+          }
+
+          if (timeout <= 0) {
+            clearInterval(interval)
+            return reject(new Error(`Timeout Wait For Dynamo Table(${tableName})-${status}`))
+          }
+        } catch (e) {
+          clearInterval(interval)
+          return reject(e)
+        }
+      }, intervalMs)
+    })
   }
 
-  return { up, down }
+  return { up, down, waitForDynamoTableStatus }
 }
 
 export function isAWSError(e: unknown) : e is AWSError {
