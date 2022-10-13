@@ -14,8 +14,9 @@ export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB
       const {TableName} = tableDefinition
       const exists = await tableExits(TableName)
       if (!exists) {
+        logger.debug("Table creating", TableName)
         await client.createTable(tableDefinition).promise()
-        logger.debug("Table added", TableName)
+        logger.debug("Table created", TableName)
       }
       // logger.debug("### Migration complete! ###");
     } catch (e) {
@@ -33,8 +34,9 @@ export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB
       const {TableName} = tableDefinition
       const exists = await tableExits(TableName)
       if(exists) {
+        logger.debug("Table deleting", TableName)
         await client.deleteTable({ TableName: TableName }).promise()
-        logger.debug("Table removed", TableName)
+        logger.debug("Table deleted", TableName)
       }
     } catch (e) {
       if(isAWSError(e)){
@@ -46,7 +48,8 @@ export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB
       throw e
     }
   }
-  async function tableExits(name:string) {
+
+  async function tableExits(name:string): Promise<boolean> {
     const tableList = await client.listTables().promise()
     return (tableList.TableNames ?? []).includes(name)
   }
