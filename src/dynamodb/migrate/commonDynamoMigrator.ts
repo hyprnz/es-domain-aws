@@ -1,3 +1,4 @@
+import { Logger } from '@hyprnz/es-domain'
 import { AWSError, DynamoDB } from 'aws-sdk'
 
 export interface Migrator {
@@ -5,20 +6,21 @@ export interface Migrator {
   down(): Promise<void>
 }
 
-export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB.Types.CreateTableInput): Migrator => {
+export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB.Types.CreateTableInput, logger: Logger): Migrator => {
 
   async function up(): Promise<void> {
     // logger.debug("### Migrating... ###");
     try {
-      const exists = await tableExits(tableDefinition.TableName)
+      const {TableName} = tableDefinition
+      const exists = await tableExits(TableName)
       if (!exists) {
         await client.createTable(tableDefinition).promise()
-        console.debug("Table added", tableDefinition.TableName)
+        logger.debug("Table added", TableName)
       }
       // logger.debug("### Migration complete! ###");
     } catch (e) {
       // logger.error(new NestedError("There was an error creating the DB:", e));
-      console.error('Failed to create DrnamoDb Table', tableDefinition.TableName, e)
+      logger.error('Failed to create DynamoDb Table', tableDefinition.TableName, e)
       throw e
     }
   }
@@ -28,13 +30,19 @@ export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB
   async function down(): Promise<void> {
     // logger.debug("### Deleting DB... ###");
     try {
-      const exists = await tableExits(tableDefinition.TableName)
+      const {TableName} = tableDefinition
+      const exists = await tableExits(TableName)
       if(exists) {
-        await client.deleteTable({ TableName: tableDefinition.TableName }).promise()
-        console.debug("Table removed", tableDefinition.TableName)
+        await client.deleteTable({ TableName: TableName }).promise()
+        logger.debug("Table removed", TableName)
       }
     } catch (e) {
-      console.error('There was an error deleting the DB', e)
+      if(isAWSError(e)){
+        // Table has gone so dont raise an error...
+        if(e.code === "ResourceNotFoundException") return
+      }
+
+      logger.error('There was an error deleting the DB', e)
       throw e
     }
   }

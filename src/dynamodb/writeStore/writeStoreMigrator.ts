@@ -1,7 +1,8 @@
+import { Logger } from '@hyprnz/es-domain'
 import { DynamoDB } from 'aws-sdk'
 import { commonDynamoMigrator } from '../migrate/commonDynamoMigrator'
 
-export const makeWriteStoreMigrator = (client: DynamoDB, tableName: string = 'eventstore') => {
+export const makeWriteStoreMigrator = (client: DynamoDB, tableName: string = 'eventstore', logger:Logger = console) => {
 
   const tableShape: DynamoDB.Types.CreateTableInput = {
     TableName: tableName,
@@ -31,5 +32,5 @@ export const makeWriteStoreMigrator = (client: DynamoDB, tableName: string = 'ev
     },
   }
 
-  return commonDynamoMigrator(client, tableShape)
+  return commonDynamoMigrator(client, tableShape, logger)
 }

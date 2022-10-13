@@ -98,6 +98,7 @@ export class DynamoDbInternalEventStore implements InternalEventStore {
 
     } catch (e) {
       if(isAWSError(e)){
+        this.logger.error(JSON.stringify(e))
         if (e.code === 'TransactionCanceledException') throw new OptimisticConcurrencyError(aggregateId, changeVersion)
         throw new WriteModelRepositoryError('AggregateRoot', `Dynamo Db Error: ${e.code}`)
       }

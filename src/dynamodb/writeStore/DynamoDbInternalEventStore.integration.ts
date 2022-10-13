@@ -29,13 +29,13 @@ describe('DynamoDbInternalEventStore', () => {
       uuid: () => Uuid.createV4()
     }
 
-  
+
     const client = new DynamoDB.DocumentClient({service: db})
     dynamoRepo = new DynamoDbInternalEventStore(config, client, console)
     eventStore = new AggregateRepository(dynamoRepo)
   })
 
-  describe("repository", () => {
+  describe("DynamoDbInternalEventStore", () => {
     describe("loads, when no events", () => {
       it("getEvents", async () => {
         const someid = Uuid.createV4()
