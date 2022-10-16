@@ -72,7 +72,7 @@ describe("commonDynamoMigrator", () => {
                 .timesAtLeast(1)
 
             await assertThat(dynamoSetup.waitForDynamoTableStatus(tableName, 2000, (s) => s === "ACTIVE", 500))
-                .catches(new Error("Timeout Wait For Dynamo Table(some-table)-CREATING"))
+                .catches(new Error("Timeout Wait For Dynamo Table(some-table) Status:CREATING"))
         })
     })
 })

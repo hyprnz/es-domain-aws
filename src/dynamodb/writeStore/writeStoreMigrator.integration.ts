@@ -18,7 +18,7 @@ describe('writeStoreMigrator', () => {
         const tableNames = (await client.listTables().promise()).TableNames ?? []
 
         const tableState = await client.describeTable({TableName:tableName}).promise()
-        assertThat(tableState.Table?.TableStatus).isAnyOf(["ACTIVE", "CREATING"])
+        assertThat(tableState.Table?.TableStatus).is("ACTIVE")
         assertThat(tableNames).is(match.array.contains(tableName))
     })
 
@@ -54,13 +54,10 @@ describe('writeStoreMigrator', () => {
     it('down', async () => {
         const tableName = `some-test-table-${Date.now()}`
         const migrator = makeWriteStoreMigrator(client, tableName)
-
         await migrator.up()
+
         const tablesBeforeDown = (await client.listTables().promise()).TableNames ?? []
-
-
         await migrator.down()
-        await delay(100)
 
         const tablesAfterDown = (await client.listTables().promise()).TableNames ?? []
         assertThat(tablesBeforeDown).is(match.array.contains(tableName))

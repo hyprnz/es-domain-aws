@@ -17,30 +17,39 @@ export type InternalMigrator = Migrator & {waitForDynamoTableStatus: (
 export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB.Types.CreateTableInput, logger: Logger) : InternalMigrator  => {
 
   async function up(): Promise<void> {
-    // logger.debug("### Migrating... ###");
+    logger.debug("### Migrating UP... ###");
     try {
       const {TableName} = tableDefinition
-      const status = await waitForDynamoTableStatus(
+      const initalStatus = await waitForDynamoTableStatus(
         TableName,
         2000,
         // Wait for either active or removed
         (s) => (s === undefined || s === "ACTIVE"),
-        200
+        500
       )
 
-      if (!status) {
-        logger.debug("Table creating", TableName)
+      if (!initalStatus) {
+        logger.debug(`Table creating: ${TableName}`)
         await client.createTable(tableDefinition).promise()
-        logger.debug("Table created", TableName)
+        const status = await waitForDynamoTableStatus(
+          TableName,
+          1000,
+          // Wait for active
+          (s) => s === "ACTIVE",
+          300
+        )
+        logger.debug(`Table created:${TableName} - ${status}`)
+      } else {
+        logger.debug(`### Migration complete! ${TableName} - ${initalStatus} ###`);
       }
-      // logger.debug("### Migration complete! ###");
+      logger.debug(`### Migration complete! ${TableName} - ${initalStatus} ###`);
     } catch (e) {
       if(isAWSError(e)){
         // Table already created
         if(e.code === 'ResourceInUseException') return
       }
-      // logger.error(new NestedError("There was an error creating the DB:", e));
-      logger.error('Failed to create DynamoDb Table ${tableDefinition.TableName}', e)
+
+      logger.error(`Failed to create DynamoDb Table ${tableDefinition.TableName}`, e)
       throw e
     }
   }
@@ -51,17 +60,24 @@ export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB
     // logger.debug("### Deleting DB... ###");
     try {
       const {TableName} = tableDefinition
-      const status = await waitForDynamoTableStatus(
+      const initalStatus = await waitForDynamoTableStatus(
         TableName,
         2000,
         // Wait for either active or removed
         (s) => (s === undefined || s === "ACTIVE"),
         200
       )
-      if(status) {
-        logger.debug("Table deleteing", TableName)
+      if(initalStatus) {
+        logger.debug(`Table deleteing:${TableName} Status: ${initalStatus}`)
         await client.deleteTable({ TableName: TableName }).promise()
-        logger.debug("Table deleted", TableName)
+        const status = await waitForDynamoTableStatus(
+          TableName,
+          2000,
+          // Wait for active
+          (s) => s === undefined,
+          200
+        )
+        logger.debug(`Table deleted:${TableName} Status: ${initalStatus}`)
       }
     } catch (e) {
       if(isAWSError(e)){
@@ -69,7 +85,7 @@ export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB
         if(e.code === "ResourceNotFoundException") return
       }
 
-      logger.error('There was an error deleting the DB', e)
+      // logger.error('There was an error deleting the DB', e)
       throw e
     }
   }
@@ -107,12 +123,18 @@ export const commonDynamoMigrator = (client: DynamoDB, tableDefinition: DynamoDB
             return resolve(status)
           }
 
+          logger.info(`Table Status: ${status} retrying`)
+
           if (timeout <= 0) {
             clearInterval(interval)
-            return reject(new Error(`Timeout Wait For Dynamo Table(${tableName})-${status}`))
+            const errorMessage = `Timeout Wait For Dynamo Table(${tableName}) Status:${status}`
+            logger.error(errorMessage)
+            return reject(new Error(errorMessage))
           }
         } catch (e) {
           clearInterval(interval)
+          const errorMessage = `Unexpected error Wait For Dynamo Table(${tableName})`
+          logger.error(errorMessage)
           return reject(e)
         }
       }, intervalMs)

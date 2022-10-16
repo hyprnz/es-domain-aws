@@ -3,7 +3,6 @@ import { makeWriteStoreMigrator } from './writeStoreMigrator'
 import { AggregateContainer, AggregateRepository, EntityEvent, InternalEventStore, Uuid } from '@hyprnz/es-domain'
 import { Device } from '../../testAggregate/Device'
 import { DynamoDB } from 'aws-sdk'
-import { DocumentClient } from 'aws-sdk/clients/dynamodb'
 import { DynamoDbInternalEventStore, DynamoDbInternalEventStoreConfig } from './DynamoDbInternalEventStore'
 import { makeAWSDynamoConfig } from '../../fixtures/testEnvironment'
 
@@ -20,6 +19,7 @@ describe('DynamoDbInternalEventStore', () => {
 
     const db = new DynamoDB(clientOptions)
     const migrate = makeWriteStoreMigrator(db, tableName)
+    await migrate.down()
     await migrate.up()
 
 

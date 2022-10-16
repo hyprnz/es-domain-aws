@@ -59,10 +59,7 @@ describe('readStoreMigrator', () => {
         await migrator.up()
         const tablesBeforeDown = (await client.listTables().promise()).TableNames ?? []
 
-
         await migrator.down()
-        await delay(100)
-
         const tablesAfterDown = (await client.listTables().promise()).TableNames ?? []
         assertThat(tablesBeforeDown).is(match.array.contains(tableName))
         assertThat(tablesAfterDown).isNot(match.array.contains(tableName))
