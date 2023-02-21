@@ -76,6 +76,11 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Npm Audit
+        run: |
+          set -e
+          npm audit --omit=dev --audit-level=high
+
       - name: Micro Test
         run: npm run test:micro
 
