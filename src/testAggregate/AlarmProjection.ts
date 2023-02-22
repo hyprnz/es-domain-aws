@@ -1,11 +1,11 @@
-import { makeProjection, Projection, StaticProjectionEventHandler, Uuid } from '@hyprnz/es-domain';
+import { projection, Projection, Uuid } from '@hyprnz/es-domain';
 import { AlarmCreatedEvent, AlarmDestroyedEvent } from './Device';
 
 export interface AlarmProjection extends Projection {
   name: string
 }
 
-const eventHandlers: Record<string, StaticProjectionEventHandler<AlarmProjection>> = {
+const eventHandlers: Record<string, projection.StaticProjectionEventHandler<AlarmProjection>> = {
   [AlarmCreatedEvent.eventType]: (state, evt) => {
     AlarmCreatedEvent.assertAlarmCreatedEvent(evt)
     state.name = evt.name
@@ -21,7 +21,7 @@ const iniialValue = (id: Uuid.UUID): AlarmProjection => ({
 })
 
 export const ALARM_PROJECTION = 'alarm'
-export const alarmProjection = makeProjection<AlarmProjection>(
+export const alarmProjection = projection.makeProjection<AlarmProjection>(
   ALARM_PROJECTION,
   eventHandlers,
   iniialValue,

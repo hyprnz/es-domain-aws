@@ -102,3 +102,10 @@ dist
 
 # TernJS port file
 .tern-port
+
+#custom outputs
+build
+artifacts
+junit.xml
+*.gtz
+tsconfig.tsbuildinfo

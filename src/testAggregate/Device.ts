@@ -100,7 +100,7 @@ export namespace AlarmDestroyedEvent {
 }
 
 
-interface InitialiseDevicePayload extends EntityConstructorPayload {
+export interface InitialiseDevicePayload extends EntityConstructorPayload {
 
 }
 export class Alarm {

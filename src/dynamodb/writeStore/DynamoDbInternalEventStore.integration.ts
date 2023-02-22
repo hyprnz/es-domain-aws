@@ -1,15 +1,16 @@
-import { assertThat, match } from 'mismatched'
-import { makeWriteStoreMigrator } from './writeStoreMigrator'
-import { AggregateContainer, AggregateRepository, EntityEvent, InternalEventStore, Uuid } from '@hyprnz/es-domain'
-import { Device } from '../../testAggregate/Device'
+import { AggregateRootRepository, AggregateRootRepositoryFactory, EntityEvent, EventStore, EventStoreBuilder, InternalEventStore, Uuid } from '@hyprnz/es-domain'
 import { DynamoDB } from 'aws-sdk'
-import { DynamoDbInternalEventStore, DynamoDbInternalEventStoreConfig } from './DynamoDbInternalEventStore'
+import { assertThat, match } from 'mismatched'
 import { makeAWSDynamoConfig } from '../../fixtures/testEnvironment'
+import { Device, InitialiseDevicePayload } from '../../testAggregate/Device'
+import { DynamoDbInternalEventStore, DynamoDbInternalEventStoreConfig } from './DynamoDbInternalEventStore'
+import { makeWriteStoreMigrator } from './writeStoreMigrator'
 
 describe('DynamoDbInternalEventStore', () => {
 
   let dynamoRepo: InternalEventStore
-  let eventStore: AggregateRepository
+  let eventStore: EventStore
+  let deviceRepoistory: AggregateRootRepository<Device, InitialiseDevicePayload>
 
   beforeAll(async () => {
 
@@ -32,7 +33,8 @@ describe('DynamoDbInternalEventStore', () => {
 
     const client = new DynamoDB.DocumentClient({service: db})
     dynamoRepo = new DynamoDbInternalEventStore(config, client, console)
-    eventStore = new AggregateRepository(dynamoRepo)
+    eventStore = EventStoreBuilder.withRepository(dynamoRepo).make()
+    deviceRepoistory = AggregateRootRepositoryFactory.makeRepo(eventStore, Device)
   })
 
   describe("DynamoDbInternalEventStore", () => {
@@ -57,13 +59,10 @@ describe('DynamoDbInternalEventStore', () => {
         someid = Uuid.createV4()
         const alarmId = Uuid.createV4()
 
-        const deviceAggregate = new AggregateContainer(Device) //.withDevice(deviceId)
-        const device = deviceAggregate.createNewAggregateRoot({ id: someid })
+        const [device, deviceAggregate] = await deviceRepoistory.create({ id: someid })
         device.addAlarm(alarmId)
-
         eventList = deviceAggregate.uncommittedChanges()
-
-        await eventStore.save(deviceAggregate)
+        await device.save()
       })
 
       it("getEvents", async () => {
@@ -89,9 +88,9 @@ describe('DynamoDbInternalEventStore', () => {
         someid = Uuid.createV4()
         const alarmId = Uuid.createV4()
 
-        const deviceAggregate = new AggregateContainer(Device) //.withDevice(deviceId)
-        const device = deviceAggregate.createNewAggregateRoot({ id: someid })
+        const [device, deviceAggregate] = await deviceRepoistory.create({ id: someid })
         device.addAlarm(alarmId)
+
 
         eventList = deviceAggregate.uncommittedChanges()
       })
@@ -104,11 +103,10 @@ describe('DynamoDbInternalEventStore', () => {
         await dynamoRepo.appendEvents(someid, 1, eventList)
       })
 
+
       it("should fail to append duplicate events", async ()=>{
         const VERSION = 1
         await dynamoRepo.appendEvents(someid, VERSION, eventList)
-        // assertThat(async () => await dynamoRepo.appendEvents(someid, VERSION, eventList))
-        //   .throwsError(`Optimistic concurrency error for aggregate root id: ${someid}, version: ${VERSION}`)
 
           await dynamoRepo.appendEvents(someid, VERSION, eventList).then(
             () => {
@@ -116,6 +114,29 @@ describe('DynamoDbInternalEventStore', () => {
             },
             e => assertThat(e.message).is(`Optimistic concurrency error for aggregate root id: ${someid}, version: ${VERSION}`)
           )
+      })
+
+      it("should fail to append duplicate events in single transaction", async ()=>{
+        const VERSION = 1
+        await dynamoRepo.appendEvents(someid, VERSION, eventList.concat(eventList)).then(
+          () => {
+            throw new Error('Expected and Optimistic concurrency error here!!')
+          },
+          e => assertThat(e.message).is(`Optimistic concurrency error for aggregate root id: ${someid}, version: ${VERSION}`)
+        )
+      })
+
+      it("dynamo supports transactions spanning multiple multiple parttions/ aggregates", async () =>{
+        const event = eventList[0]
+        const events = [
+          event,
+          {
+            version : event.version,
+            event: {...event.event, aggregateRootId:  Uuid.createV4(), id:  Uuid.createV4()
+          },
+        }]
+
+        await dynamoRepo.appendEvents(someid, 1, events)
       })
     })
   })
@@ -127,16 +148,15 @@ describe('DynamoDbInternalEventStore', () => {
       const deviceId = Uuid.createV4()
       const alarmId = Uuid.createV4()
 
-      const deviceAggregate = new AggregateContainer(Device) //.withDevice(deviceId)
-      const device = deviceAggregate.createNewAggregateRoot({ id: deviceId })
+      const [device, deviceAggregate] = await deviceRepoistory.create({ id: deviceId })
       device.addAlarm(alarmId)
 
       const uncommittedEvents = deviceAggregate.uncommittedChanges()
 
       const emittedEvents: Array<EntityEvent> = []
-      eventStore.subscribeToChangesSynchronously(async changes => changes.forEach(x => emittedEvents.push(x)))
+      eventStore.registerCallback(async changes => changes.forEach(x => emittedEvents.push(x)))
 
-      const countEvents = await eventStore.save(deviceAggregate)
+      const countEvents = await device.save()
 
       assertThat(countEvents).withMessage('Stored Event count').is(2)
       assertThat(emittedEvents).withMessage('Emitted Events').is(match.array.length(2))
@@ -147,37 +167,28 @@ describe('DynamoDbInternalEventStore', () => {
       const deviceId = Uuid.createV4()
       const alarmId = Uuid.createV4()
 
-      const deviceAggregate = new AggregateContainer(Device) //.withDevice(deviceId)
-      const device = deviceAggregate.createNewAggregateRoot({ id: deviceId })
+
+      const [device, deviceAggregate] = await deviceRepoistory.create({ id: deviceId })
       device.addAlarm(alarmId)
-
-
-      const uncomittedEvents = deviceAggregate.uncommittedChanges()
-      await eventStore.save(deviceAggregate)
+      const uncommitedEvents = deviceAggregate.uncommittedChanges()
+      await device.save()
 
       // Compare Saved event to loaded make sure they are the same
-      const loadedEvents = await eventStore.loadEvents(deviceId)
+      const loadedEvents = await eventStore.getEvents(device.id)
 
       assertThat(loadedEvents).is(match.array.length(2))
-      assertThat(uncomittedEvents).is(loadedEvents)
+      assertThat(uncommitedEvents).is(loadedEvents)
     })
 
     it('detects concurrency', async () => {
       const deviceId = Uuid.createV4()
       const alarmId = Uuid.createV4()
 
-      const deviceAggregate = new AggregateContainer(Device)
-      const device = deviceAggregate.createNewAggregateRoot({ id: deviceId })
+      const [device, deviceAggregate] = await deviceRepoistory.create({ id: deviceId })
       device.addAlarm(alarmId)
+      await device.save()
 
-      await eventStore.save(deviceAggregate)
-
-      const anotherDeviceAggregate = await eventStore.load(
-        deviceId,
-        new AggregateContainer(Device)
-      );
-      const anotherDevice = anotherDeviceAggregate.rootEntity;
-
+      const [anotherDevice, anotherDeviceAggregate] = await deviceRepoistory.get(device.id);
 
 
       // Make changes to both
@@ -196,8 +207,8 @@ describe('DynamoDbInternalEventStore', () => {
       assertThat(deviceAggregate.uncommittedChanges()[0].event.aggregateRootId).withMessage('UnCommited device').is(deviceId)
       assertThat(anotherDeviceAggregate.uncommittedChanges()[0].event.aggregateRootId).withMessage('UnCommited anotherDevice').is(deviceId)
 
-      await eventStore.save(deviceAggregate)
-      await eventStore.save(anotherDeviceAggregate).then(
+      await device.save()
+      await anotherDevice.save().then(
         () => {
           throw new Error('Expected and Optimistic concurrency error here!!')
         },

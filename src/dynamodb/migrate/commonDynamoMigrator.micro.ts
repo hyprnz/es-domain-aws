@@ -1,12 +1,12 @@
-import { Thespian, TMocked } from "thespian"
 import { AWSError, DynamoDB, Request } from 'aws-sdk'
-import { commonDynamoMigrator, InternalMigrator } from "./commonDynamoMigrator"
 import { DescribeTableOutput, TableStatus } from "aws-sdk/clients/dynamodb"
 import { assertThat } from "mismatched"
+import { Thespian, TMocked } from "thespian"
+import { commonDynamoMigrator, InternalMigrator } from "./commonDynamoMigrator"
 
 describe("commonDynamoMigrator", () => {
-    let mocks: Thespian
 
+    let mocks: Thespian
     beforeEach(() => {
         mocks = new Thespian()
     })

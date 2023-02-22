@@ -1,5 +1,5 @@
-import { Logger, WriteModelRepositoryError } from '@hyprnz/es-domain'
-import { ChangeEvent, EntityEvent, InternalEventStore, OptimisticConcurrencyError, Uuid } from '@hyprnz/es-domain'
+import { EventStoreRepository, Logger, WriteModelRepositoryError } from '@hyprnz/es-domain'
+import { ChangeEvent, EntityEvent, OptimisticConcurrencyError, Uuid } from '@hyprnz/es-domain'
 import { AttributeMap, DocumentClient, TransactWriteItem } from 'aws-sdk/clients/dynamodb'
 import { isAWSError } from '../migrate/commonDynamoMigrator';
 
@@ -26,7 +26,7 @@ export interface DynamoDbInternalEventStoreConfig {
 
 const MAX_BATCH_SIZE = 25;
 
-export class DynamoDbInternalEventStore implements InternalEventStore {
+export class DynamoDbInternalEventStore implements EventStoreRepository {
   constructor(
     private config: DynamoDbInternalEventStoreConfig,
     private dynamoClient: DocumentClient,

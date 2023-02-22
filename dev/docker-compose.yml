@@ -9,6 +9,7 @@ services:
     volumes:
       - ..:/app:cached
       - ~/.npmrc:/home/node/.npmrc:delegated
+      # - ../../es-domain:/es-domain:cached
     command: sleep infinity
     environment:
       - NODE_ENV=development
